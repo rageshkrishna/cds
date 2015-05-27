@@ -1,0 +1,259 @@
+import sys
+import uuid
+import time
+import datetime
+import calendar
+import threading
+import os
+import logging
+import logging.handlers
+from message_out import MessageOut
+
+
+class AppLogger(object):
+    logtype = {
+        'SYSTEM' : 10,
+        'USER' : 20,
+        'GLOBAL' : 30
+    }
+
+    loglevel = {
+        'DEBUG': 10,
+        'INFO': 20,
+        'WARN': 30,
+        'ERROR': 40,
+        'CRITICAL': 50,
+    }
+
+    def __init__(self, config, module):
+        self.config = config
+        self.module = module
+        self.handlers = None
+        self.__setup_log(module)
+        self.user_logger_enabled = False
+        self.user_log_bytes = 0
+        self.header_params = None
+
+        self.message_out = MessageOut(self.module, self.config)
+
+        self.console_buffer = []
+
+        ## flush stdout to avoid out of order logging
+        sys.stdout.flush()
+
+    def init_user_logger(self, header_params):
+        self.user_logger_enabled = True
+        ## user params get published as-is in the message
+        ## user params should be key-value pairs
+        if type(header_params) is dict:
+            self.header_params = header_params
+
+    def debug(self, message, logtype=logtype['SYSTEM']):
+        self.log.debug(message)
+        if logtype == self.logtype['USER']:
+            self.__publish_user_system_buffer(message, self.loglevel['DEBUG'])
+
+        if logtype == self.logtype['SYSTEM']:
+            self.__publish_system_buffer(message, self.loglevel['DEBUG'])
+
+    def info(self, message, logtype=logtype['SYSTEM']):
+        self.log.info(message)
+        if logtype == self.logtype['USER']:
+            self.__publish_user_system_buffer(message, self.loglevel['INFO'])
+
+        if logtype == self.logtype['SYSTEM']:
+            self.__publish_system_buffer(message, self.loglevel['INFO'])
+
+    def warn(self, message, exc_info=None, logtype=logtype['SYSTEM']):
+        self.log.warn(message, exc_info=exc_info)
+        if logtype == self.logtype['USER']:
+            self.__publish_user_system_buffer(message, self.loglevel['WARN'])
+
+        if logtype == self.logtype['SYSTEM']:
+            self.__publish_system_buffer(message, self.loglevel['WARN'])
+
+    def error(self, message, exc_info=None, logtype=logtype['SYSTEM']):
+        self.log.error(message, exc_info=exc_info)
+        if logtype == self.logtype['USER']:
+            self.__publish_user_system_buffer(message, self.loglevel['ERROR'])
+
+        if logtype == self.logtype['SYSTEM']:
+            self.__publish_system_buffer(message, self.loglevel['ERROR'])
+
+    def critical(self, message, logtype=logtype['SYSTEM']):
+        self.log.critical(message)
+        if logtype == self.logtype['USER']:
+            self.__publish_user_system_buffer(
+                message, self.loglevel['CRITICAL'])
+
+        if logtype == self.logtype['SYSTEM']:
+            self.__publish_system_buffer(message, self.loglevel['CRITICAL'])
+
+    def remove_handler(self, handler):
+        self.log.removeHandler(handler)
+
+    def __get_timestamp(self):
+        return int(time.time() * 1000000)
+
+    def __publish_system_buffer(self, message, level):
+        if not self.config['SYSTEM_LOGGING_ENABLED']:
+            return
+
+        self.log.debug('Publishing logs : SYSTEM')
+
+        system_output_line = {
+            'consoleSequenceNumber' : self.__get_timestamp(),
+            'output': message
+        }
+
+        system_message = {
+            'headers' : {
+                'type' : self.logtype['SYSTEM'],
+                'level' : level,
+                'step' : self.config['STEP_NAME'],
+                'messageDate': datetime.datetime.utcnow().isoformat(),
+            },
+            'updateSequenceNumber': self.__get_timestamp(),
+            'consoleLogBytes': sys.getsizeof(message),
+            'module': self.module,
+            'timestamp': self.__get_timestamp(),
+            'console': [system_output_line],
+        }
+        self.log.debug(system_message)
+
+    def append_console_buffer(self, console_out):
+        self.console_buffer.append(console_out)
+        self.flush_console_buffer()
+
+    def __publish_user_system_buffer(self, message, level):
+        if not self.config['USER_SYSTEM_LOGGING_ENABLED']:
+            return
+        self.log.debug('Publishing logs: USER SYSTEM')
+        system_output_line = {
+            'consoleSequenceNumber' : self.__get_timestamp(),
+            'output': message,
+        }
+        self.log.debug(system_output_line)
+        user_system_message = {
+            'headers' : {
+                'type' : self.logtype['GLOBAL'],
+                'level' : level,
+                'step' : self.config['STEP_NAME'],
+                'messageDate': datetime.datetime.utcnow().isoformat(),
+            },
+            'updateSequenceNumber': self.__get_timestamp(),
+            'consoleLogBytes': sys.getsizeof(message),
+            'module': self.module,
+            'timestamp': self.__get_timestamp(),
+            'console': [system_output_line],
+        }
+
+        for header_param in self.header_params:
+            user_system_message['headers'][header_param] = \
+                self.header_params[header_param]
+
+    def flush_console_buffer(self):
+        self.log.info('Flushing console buffer')
+        if len(self.console_buffer) == 0:
+            self.log.debug('No console output to flush')
+        else:
+            self.log.debug('Flushing {0} console logs'.format(
+                len(self.console_buffer)))
+
+            console_message = {
+                'headers' : {
+                    'step' : self.config['STEP_NAME'],
+                    'timestamp': self.__get_timestamp(),
+                    'consoleType' : 'nodeInit',
+                },
+                'updateSequenceNumber': self.__get_timestamp(),
+                'consoleLogBytes': self.user_log_bytes,
+                'console' : self.console_buffer,
+            }
+
+            for header_param in self.header_params:
+                console_message['headers'][header_param] = \
+                    self.header_params[header_param]
+
+            self.message_out.console(console_message)
+
+            del self.console_buffer
+            self.console_buffer = []
+
+    def __setup_log(self, module_name):
+        module_name = os.path.basename(module_name)
+        module_name = module_name.split('.')[0]
+        print 'Setting up logging for module : {0} \n'.format(module_name)
+
+        logging.basicConfig(level=logging.INFO)
+        project_root = os.path.split(
+            os.path.normpath(os.path.abspath(__file__)))[0]
+        log_dir = (project_root + '/logs').replace('//', '/')
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        logger_name = self.module
+        log_file = self.__get_log_file_name(logger_name, 'log', log_dir)
+        with open(log_file, 'a'):
+            os.utime(log_file, None)
+
+        log_module_name = '{0} - {1}'.format(logger_name, module_name)
+        self.log = logging.getLogger(log_module_name)
+
+        self.log.propagate = True
+        self.log.setLevel(logging.DEBUG)
+        #handler = logging.FileHandler(log_file)
+        handler = logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=10000000, backupCount=2)
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.log.addHandler(handler)
+        self.handlers = self.log.handlers
+        self.log.info('Log Config Setup successful')
+
+    def __get_log_file_name(self, name, ext, folder):
+        new_name = '{0}/{1}.{2}'.format(folder, name, ext)
+        return new_name
+
+    def log_start_command_grp(self, grp_name):
+        log_date = datetime.datetime.utcnow()
+        consol_op = '__SH__CMD__GROUP__START__|{0}|{1}\n'.format(
+            grp_name, calendar.timegm(log_date.utctimetuple()))
+
+    def log_end_command_grp(self):
+        log_date = datetime.datetime.utcnow()
+        consol_op = '__SH__CMD__GROUP__END__|{0}\n'.format(
+            calendar.timegm(log_date.utctimetuple()))
+
+    def log_start_command(self, grp_name, cmd):
+        log_date = datetime.datetime.utcnow()
+        consol_op = '__SH__CMD__START__|{0}|{1}|{2}\n'.format(
+            grp_name, cmd, calendar.timegm(log_date.utctimetuple()))
+
+    def log_end_command(self):
+        log_date = datetime.datetime.utcnow()
+        consol_op = '__SH__CMD__END__|{0}\n'.format(
+            calendar.timegm(log_date.utctimetuple()))
+
+    def log_command_op(self, output):
+        console_out = {
+            'consoleId': str(uuid.uuid4()),
+            'parentConsoleId': '',
+            'type': 'msg',
+            'message' : output,
+            'msgTimestamp': self.__get_timestamp(),
+            'completed' : True
+        }
+        self.console_buffer.append(console_out)
+
+    def log_command_err(self, err):
+        console_out = {
+            'consoleId': str(uuid.uuid4()),
+            'parentConsoleId': '',
+            'type': 'msg',
+            'message' : err,
+            'msgTimestamp': self.__get_timestamp(),
+            'completed' : False
+        }
+        self.console_buffer.append(console_out)

@@ -1,0 +1,4 @@
+pika==0.9.14
+glob2==0.4.1
+awscli==1.7.20
+requests==2.7.0
