@@ -73,13 +73,10 @@ class Base(object):
             'returncode': None
         }
 
-        #self.log.log_start_command_grp(self.config['STEP_NAME'])
-
         command_thread = threading.Thread(
             target=self.__command_runner,
             args=(cmd, working_dir, command_thread_result,))
 
-        self.log.start_flush_timer()
         command_thread.start()
 
         self.log.debug('Waiting for command thread to complete')
@@ -107,9 +104,6 @@ class Base(object):
                 current_step_state = self.STATUS['FAILED']
                 self.log.error(error_message)
 
-        self.log.stop_flush_timer()
-        self.log.publish_user_buffer()
-
         return current_step_state
 
     def __command_runner(self, cmd, working_dir, result):
@@ -130,10 +124,7 @@ class Base(object):
 
             exception = 'Invalid or no script tags received'
             for line in iter(proc.stdout.readline, ''):
-                if line.startswith('__SH__GIT__META__'):
-                    ## Build script specific processing
-                    self.log.publish_git_metadata(line)
-                elif line.startswith('__SH__BUILD_END_SUCCESS__'):
+                if line.startswith('__SH__BUILD_END_SUCCESS__'):
                     ## Build script specific processing
                     success = True
                     break
@@ -153,7 +144,8 @@ class Base(object):
                     exception = 'Script failure tag received'
                     break
                 else:
-                    self.log.append_raw_buffer(line)
+                    self.log.debug(line)
+                    #self.log.append_console_buffer(line)
 
             proc.kill()
             if success == False:

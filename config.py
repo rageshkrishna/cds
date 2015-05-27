@@ -19,6 +19,7 @@ class Config(dict):
         self['VHOST_AMQP_URL'] = os.getenv('VHOST_AMQP_URL')
         self['SHIPPABLE_AMQP_URL'] = os.getenv('SHIPPABLE_AMQP_URL')
         self['CONTAINER_NAME'] = os.getenv('CONTAINER_NAME', '')
+        self['STEP_NAME'] = os.getenv('STEP_NAME', '')
         self['SHIPPABLE_VORTEX_URL'] = os.getenv('SHIPPABLE_VORTEX_URL')
 
         self['DEFAULT_EXCHANGE'] = 'shippableEx'

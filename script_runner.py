@@ -13,11 +13,6 @@ class ScriptRunner(Base):
             self.config['SHIPPABLE_AMQP_URL'],
             default_exchange=self.config['DEFAULT_EXCHANGE'])
 
-        self.log.init_user_logger(
-            self.message_publisher,
-            self.config['USER_SYSTEM_QUEUE'],
-            header_params)
-
     def execute_script(self, script):
         self.log.debug('executing script runner')
         if not script:
