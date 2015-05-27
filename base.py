@@ -1,7 +1,9 @@
 import os
+import time
+import json
+import uuid
 import threading
 import traceback
-import datetime
 import subprocess
 from config import Config
 from app_logger import AppLogger
@@ -48,13 +50,19 @@ class Base(object):
                 cwd=working_dir,
                 env=os.environ.copy(),
                 universal_newlines=True)
-            stdout = proc.communicate()
+            stdout, stderr = proc.communicate()
             returncode = proc.returncode
             if returncode != 0:
-                raise Exception(stdout)
+                command_status = self.STATUS['FAILED']
+                self.log.debug(stdout)
+                self.log.debug(stderr)
             else:
                 self.log.debug('System command completed {0}\nOut:{1}'.format(
                     cmd, stdout))
+                command_status = self.STATUS['SUCCESS']
+                #self.log.log_command_op(stdout)
+                self.log.debug(stdout)
+            self.log.debug('Command completed {0}'.format(cmd))
         except Exception as exc:
             error_message = 'Error running system command. Err: {0}'.format(exc)
             self.log.error(error_message)
@@ -62,7 +70,8 @@ class Base(object):
             self.log.error(exc)
             self.log.error(trace)
             raise Exception(error_message)
-        return stdout
+        self.log.debug('Returning command status: {0}'.format(command_status))
+        return command_status
 
     def __exec_user_command(self, cmd, working_dir):
         self.log.debug('Executing streaming command {0}'.format(cmd))
@@ -91,6 +100,7 @@ class Base(object):
             current_step_state = self.STATUS['TIMEOUT']
             self.log.log_command_err('Command thread timed out')
         else:
+            self.log.debug('Command completed {0}'.format(cmd))
             is_command_success = command_thread_result['success']
             if is_command_success:
                 self.log.debug('command executed successfully: {0}'.format(cmd))
@@ -103,6 +113,8 @@ class Base(object):
                 self.log.error(error_message)
                 current_step_state = self.STATUS['FAILED']
                 self.log.error(error_message)
+
+        self.log.flush_console_buffer()
 
         return current_step_state
 
@@ -123,29 +135,104 @@ class Base(object):
                 universal_newlines=True)
 
             exception = 'Invalid or no script tags received'
+            current_group_info = None
+            current_group_name = None
+            current_cmd_info = None
             for line in iter(proc.stdout.readline, ''):
-                if line.startswith('__SH__BUILD_END_SUCCESS__'):
-                    ## Build script specific processing
-                    success = True
-                    break
-                elif line.startswith('__SH__BUILD_END_FAILURE__'):
-                    ## Build script specific processing
-                    success = False
-                    exception = 'Build failure tag received'
-                    break
-                elif line.startswith('__SH__ARCHIVE_END__'):
-                    success = True
-                    break
+                self.log.debug(line)
+                if line.startswith('__SH__GROUP__START__'):
+                    current_group_info = line.split('|')[1]
+                    current_group_name = line.split('|')[2]
+                    current_group_info = json.loads(current_group_info)
+                    console_out = {
+                        'consoleId': current_group_info.get('id'),
+                        'parentConsoleId': '',
+                        'type': 'grp',
+                        'message' : current_group_name,
+                        'msgTimestamp': self.__get_timestamp(),
+                        'completed' : False
+                    }
+                    self.log.append_console_buffer(console_out)
+                elif line.startswith('__SH__CMD__START__'):
+                    current_cmd_info = line.split('|')[1]
+                    current_cmd_name = line.split('|')[2]
+                    current_cmd_info = json.loads(current_cmd_info)
+                    parent_id = current_group_info.get('id') if current_group_info else None
+                    console_out = {
+                        'consoleId': current_cmd_info.get('id'),
+                        'parentConsoleId': parent_id,
+                        'type': 'cmd',
+                        'message' : current_cmd_name,
+                        'msgTimestamp': self.__get_timestamp(),
+                        'completed' : False
+                    }
+                    if parent_id:
+                        self.log.append_console_buffer(console_out)
+                elif line.startswith('__SH__CMD__END__'):
+                    current_cmd_end_info = line.split('|')[1]
+                    current_cmd_end_name = line.split('|')[2]
+                    current_cmd_end_info = json.loads(current_cmd_end_info)
+                    parent_id = current_group_info.get('id') if current_group_info else None
+                    is_completed = False
+                    if current_cmd_end_info.get('completed') == '0':
+                        is_completed = True
+                    console_out = {
+                        'consoleId': current_cmd_info.get('id'),
+                        'parentConsoleId': parent_id,
+                        'type': 'cmd',
+                        'message' : current_cmd_end_name,
+                        'msgTimestamp': self.__get_timestamp(),
+                        'completed' : is_completed
+                    }
+                    if parent_id:
+                        self.log.append_console_buffer(console_out)
+                elif line.startswith('__SH__GROUP__END__'):
+                    current_grp_end_info = line.split('|')[1]
+                    current_grp_end_name = line.split('|')[2]
+                    current_grp_end_info = json.loads(current_grp_end_info)
+                    is_completed = False
+                    if current_grp_end_info.get('completed') == '0':
+                        is_completed = True
+                    console_out = {
+                        'consoleId': current_group_info.get('id'),
+                        'parentConsoleId': '',
+                        'type': 'grp',
+                        'message' : current_grp_end_name,
+                        'msgTimestamp': self.__get_timestamp(),
+                        'completed' : is_completed
+                    }
+                    self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__SCRIPT_END_SUCCESS__'):
                     success = True
                     break
                 elif line.startswith('__SH__SCRIPT_END_FAILURE__'):
+                    if current_group_info:
+                        console_out = {
+                            'consoleId': current_group_info.get('id'),
+                            'parentConsoleId': '',
+                            'type': 'grp',
+                            'message' : current_group_name,
+                            'msgTimestamp': self.__get_timestamp(),
+                            'completed' : False
+                        }
+                        self.log.append_console_buffer(console_out)
                     success = False
                     exception = 'Script failure tag received'
                     break
                 else:
-                    self.log.debug(line)
-                    #self.log.append_console_buffer(line)
+                    parent_id = current_cmd_info.get('id') if current_cmd_info else None
+                    console_out = {
+                        'consoleId': str(uuid.uuid4()),
+                        'parentConsoleId': parent_id,
+                        'type': 'msg',
+                        'message' : line,
+                        'msgTimestamp': self.__get_timestamp(),
+                        'completed' : False
+                    }
+                    if parent_id:
+                        self.log.append_console_buffer(console_out)
+                    else:
+                        self.log.debug(console_out)
 
             proc.kill()
             if success == False:
@@ -167,9 +254,8 @@ class Base(object):
 
         self.log.info('Command returned {0}'.format(result['returncode']))
 
-    def __utc_now(self):
-        return datetime.datetime.utcnow().isoformat()
-
+    def __get_timestamp(self):
+        return int(time.time() * 1000000)
 
     def pop_step(self, execute_plan, step):
         self.log.debug('popping the top of stack: {0}'\
