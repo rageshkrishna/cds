@@ -164,7 +164,6 @@ class AppLogger(object):
                 'headers' : {
                     'step' : self.config['STEP_NAME'],
                     'timestamp': self.__get_timestamp(),
-                    'consoleType' : 'nodeInit',
                 },
                 'updateSequenceNumber': self.__get_timestamp(),
                 'consoleLogBytes': self.user_log_bytes,
@@ -174,6 +173,7 @@ class AppLogger(object):
             for header_param in self.header_params:
                 console_message['headers'][header_param] = \
                     self.header_params[header_param]
+            console_message['headers']['consoleType'] = 'build'
 
             self.message_out.console(console_message)
 
