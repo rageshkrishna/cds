@@ -105,8 +105,6 @@ class Execute(Base):
     def __execute(self):
         self.log.debug('Executing step')
 
-        self.log.log_start_command_grp(self.config['STEP_NAME'])
-
         if self.step_scripts:
             self.log.debug('Step scripts: {0}'.format(
                 self.step_scripts))
