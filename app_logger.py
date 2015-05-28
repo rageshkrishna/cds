@@ -186,8 +186,7 @@ class AppLogger(object):
         print 'Setting up logging for module : {0} \n'.format(module_name)
 
         logging.basicConfig(level=logging.INFO)
-        project_root = os.path.split(
-            os.path.normpath(os.path.abspath(__file__)))[0]
+        project_root = self.config['HOME']
         log_dir = (project_root + '/logs').replace('//', '/')
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
