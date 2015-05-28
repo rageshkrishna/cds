@@ -2,8 +2,6 @@ import sys
 import uuid
 import time
 import datetime
-import calendar
-import threading
 import os
 import logging
 import logging.handlers
@@ -97,29 +95,8 @@ class AppLogger(object):
 
     def __publish_system_buffer(self, message, level):
         if not self.config['SYSTEM_LOGGING_ENABLED']:
+            ## DO NOT use self.log, it will cause recursion
             return
-
-        self.log.debug('Publishing logs : SYSTEM')
-
-        system_output_line = {
-            'consoleSequenceNumber' : self.__get_timestamp(),
-            'output': message
-        }
-
-        system_message = {
-            'headers' : {
-                'type' : self.logtype['SYSTEM'],
-                'level' : level,
-                'step' : self.config['STEP_NAME'],
-                'messageDate': datetime.datetime.utcnow().isoformat(),
-            },
-            'updateSequenceNumber': self.__get_timestamp(),
-            'consoleLogBytes': sys.getsizeof(message),
-            'module': self.module,
-            'timestamp': self.__get_timestamp(),
-            'console': [system_output_line],
-        }
-        self.log.debug(system_message)
 
     def append_console_buffer(self, console_out):
         self.console_buffer.append(console_out)
@@ -214,26 +191,6 @@ class AppLogger(object):
     def __get_log_file_name(self, name, ext, folder):
         new_name = '{0}/{1}.{2}'.format(folder, name, ext)
         return new_name
-
-    def log_start_command_grp(self, grp_name):
-        log_date = datetime.datetime.utcnow()
-        consol_op = '__SH__CMD__GROUP__START__|{0}|{1}\n'.format(
-            grp_name, calendar.timegm(log_date.utctimetuple()))
-
-    def log_end_command_grp(self):
-        log_date = datetime.datetime.utcnow()
-        consol_op = '__SH__CMD__GROUP__END__|{0}\n'.format(
-            calendar.timegm(log_date.utctimetuple()))
-
-    def log_start_command(self, grp_name, cmd):
-        log_date = datetime.datetime.utcnow()
-        consol_op = '__SH__CMD__START__|{0}|{1}|{2}\n'.format(
-            grp_name, cmd, calendar.timegm(log_date.utctimetuple()))
-
-    def log_end_command(self):
-        log_date = datetime.datetime.utcnow()
-        consol_op = '__SH__CMD__END__|{0}\n'.format(
-            calendar.timegm(log_date.utctimetuple()))
 
     def log_command_op(self, output):
         console_out = {
