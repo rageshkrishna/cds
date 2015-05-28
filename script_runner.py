@@ -1,17 +1,11 @@
 import uuid
 from base import Base
-from message_publisher import MessagePublisher
 
 class ScriptRunner(Base):
     def __init__(self, header_params):
         Base.__init__(self, __name__)
         self.script_dir = self.config['HOME']
         self.script_name = '{0}/{1}.sh'.format(self.script_dir, uuid.uuid4())
-        self.message_publisher = MessagePublisher(
-            self.module,
-            self.config,
-            self.config['SHIPPABLE_AMQP_URL'],
-            default_exchange=self.config['DEFAULT_EXCHANGE'])
 
         self.log.init_user_logger(header_params)
 
