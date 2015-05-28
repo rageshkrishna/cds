@@ -144,13 +144,17 @@ class Base(object):
                     current_group_info = line.split('|')[1]
                     current_group_name = line.split('|')[2]
                     current_group_info = json.loads(current_group_info)
+                    show_group = current_group_info.get('is_shown', True)
+                    if show_group == 'false':
+                        show_group = False
                     console_out = {
                         'consoleId': current_group_info.get('id'),
                         'parentConsoleId': '',
                         'type': 'grp',
                         'message' : current_group_name,
                         'msgTimestamp': self.__get_timestamp(),
-                        'completed' : False
+                        'completed' : False,
+                        'isShown': show_group
                     }
                     self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__CMD__START__'):
