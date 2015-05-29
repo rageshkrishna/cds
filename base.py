@@ -209,6 +209,9 @@ class Base(object):
                 elif line.startswith('__SH__SCRIPT_END_SUCCESS__'):
                     success = True
                     break
+                elif '__SH__ARCHIVE_END__' in line:
+                    success = True
+                    break
                 elif line.startswith('__SH__SCRIPT_END_FAILURE__'):
                     if current_group_info:
                         console_out = {
