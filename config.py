@@ -31,7 +31,9 @@ class Config(dict):
         self['MAX_COMMAND_SECONDS'] = int(os.getenv('MAX_BUILD_SECONDS', default_cmd_timeout))
 
         self['MAX_USER_LOG_SIZE'] = 12 * 1024 * 1024
-        self['CONSOLE_BUFFER_LENGTH'] = 10
+
+        buffer_length = os.getenv('CONSOLE_BUFFER_LENGTH', 10)
+        self['CONSOLE_BUFFER_LENGTH'] = int(buffer_length)
 
         self['HOME'] = os.getenv('HOME')
         self['USER'] = os.getenv('USER')
