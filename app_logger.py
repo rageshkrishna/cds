@@ -36,6 +36,7 @@ class AppLogger(object):
         self.message_out = MessageOut(self.module, self.config)
 
         self.console_buffer = []
+        self.console_buffer_lock = threading.Lock()
 
         ## flush stdout to avoid out of order logging
         sys.stdout.flush()
@@ -100,9 +101,10 @@ class AppLogger(object):
             return
 
     def append_console_buffer(self, console_out):
-        if len(self.console_buffer) <= self.config['CONSOLE_BUFFER_LENGTH']:
+        with self.console_buffer_lock:
             self.console_buffer.append(console_out)
-        else:
+
+        if len(self.console_buffer) > self.config['CONSOLE_BUFFER_LENGTH']:
             self.flush_console_buffer()
 
     def __publish_user_system_buffer(self, message, level):
@@ -137,28 +139,29 @@ class AppLogger(object):
         if len(self.console_buffer) == 0:
             self.log.debug('No console output to flush')
         else:
-            self.log.debug('Flushing {0} console logs'.format(
-                len(self.console_buffer)))
+            with self.console_buffer_lock:
+                self.log.debug('Flushing {0} console logs'.format(
+                    len(self.console_buffer)))
 
-            console_message = {
-                'headers' : {
-                    'step' : self.config['STEP_NAME'],
-                    'timestamp': self.__get_timestamp(),
-                },
-                'updateSequenceNumber': self.__get_timestamp(),
-                'consoleLogBytes': self.user_log_bytes,
-                'console' : self.console_buffer,
-            }
+                console_message = {
+                    'headers' : {
+                        'step' : self.config['STEP_NAME'],
+                        'timestamp': self.__get_timestamp(),
+                    },
+                    'updateSequenceNumber': self.__get_timestamp(),
+                    'consoleLogBytes': self.user_log_bytes,
+                    'console' : self.console_buffer,
+                }
 
-            for header_param in self.header_params:
-                console_message['headers'][header_param] = \
-                    self.header_params[header_param]
-            console_message['headers']['consoleType'] = 'build'
+                for header_param in self.header_params:
+                    console_message['headers'][header_param] = \
+                        self.header_params[header_param]
+                console_message['headers']['consoleType'] = 'build'
 
-            self.message_out.console(console_message)
+                self.message_out.console(console_message)
 
-            del self.console_buffer
-            self.console_buffer = []
+                del self.console_buffer
+                self.console_buffer = []
 
     def __setup_log(self, module_name):
         module_name = os.path.basename(module_name)
