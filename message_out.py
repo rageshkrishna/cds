@@ -30,19 +30,7 @@ class MessageOut(object):
                 self.config['SHIPPABLE_API_TOKEN']),
             'content-type': 'application/json'
         }
-        while True:
-            try:
-                request = requests.post(
-                    self.vortex_url,
-                    data=json.dumps(post_data),
-                    headers=headers)
-                self.log.debug('post console response : {0}'.format(request))
-                break
-            except Exception as exc:
-                self.log.error('Console push to vortex failed, \n ' \
-                    'Erro {0} \n retrying...'.format(str(exc)))
-                time.sleep(self.config['SHIPPABLE_VORTEX_RETRY_INTERVAL'])
-
+        self.__push_to_vortex(headers, post_data)
 
     def status(self, headers, status):
         self.log.debug('Posting status: {0}'.format(status))
@@ -58,6 +46,11 @@ class MessageOut(object):
                 self.config['SHIPPABLE_API_TOKEN']),
             'content-type': 'application/json'
         }
+
+        self.__push_to_vortex(headers, post_data)
+
+    def __push_to_vortex(self, headers, post_data):
+        self.log.debug('Pushing to vortex')
         while True:
             try:
                 request = requests.post(
@@ -67,6 +60,6 @@ class MessageOut(object):
                 self.log.debug('post status response : {0}'.format(request))
                 break
             except Exception as exc:
-                self.log.error('Status push to vortex failed, \n ' \
-                    'Erro {0} \n retrying...'.format(str(exc)))
+                self.log.error('{0}\n{1}\nretrying...'.format(
+                    post_data, str(exc)))
                 time.sleep(self.config['SHIPPABLE_VORTEX_RETRY_INTERVAL'])
