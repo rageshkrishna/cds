@@ -21,6 +21,7 @@ class Config(dict):
         self['CONTAINER_NAME'] = os.getenv('CONTAINER_NAME', '')
         self['STEP_NAME'] = os.getenv('STEP_NAME', '')
         self['SHIPPABLE_VORTEX_URL'] = os.getenv('SHIPPABLE_VORTEX_URL')
+        self['SHIPPABLE_VORTEX_RETRY_INTERVAL'] = int(os.getenv('SHIPPABLE_VORTEX_RETRY_INTERVAL', 3))
         self['SHIPPABLE_API_TOKEN'] = os.getenv('SHIPPABLE_API_TOKEN', '')
 
         self['DEFAULT_EXCHANGE'] = 'shippableEx'
