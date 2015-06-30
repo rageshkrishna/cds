@@ -67,6 +67,6 @@ class MessageOut(object):
                 self.log.debug('post status response : {0}'.format(request))
                 break
             except Exception as exc:
-                self.log.error('Console push to vortex failed, \n ' \
+                self.log.error('Status push to vortex failed, \n ' \
                     'Erro {0} \n retrying...'.format(str(exc)))
                 time.sleep(self.config['SHIPPABLE_VORTEX_RETRY_INTERVAL'])
