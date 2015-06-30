@@ -41,7 +41,7 @@ class MessageOut(object):
             except Exception as exc:
                 self.log.error('Console push to vortex failed, \n ' \
                     'Erro {0} \n retrying...'.format(str(exc)))
-                time.sleep(self.config['VORTEX_RETRY_INTERVAL'])
+                time.sleep(self.config['SHIPPABLE_VORTEX_RETRY_INTERVAL'])
 
 
     def status(self, headers, status):
@@ -69,4 +69,4 @@ class MessageOut(object):
             except Exception as exc:
                 self.log.error('Console push to vortex failed, \n ' \
                     'Erro {0} \n retrying...'.format(str(exc)))
-                time.sleep(self.config['VORTEX_RETRY_INTERVAL'])
+                time.sleep(self.config['SHIPPABLE_VORTEX_RETRY_INTERVAL'])

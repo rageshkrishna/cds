@@ -21,6 +21,7 @@ class Config(dict):
         self['CONTAINER_NAME'] = os.getenv('CONTAINER_NAME', '')
         self['STEP_NAME'] = os.getenv('STEP_NAME', '')
         self['SHIPPABLE_VORTEX_URL'] = os.getenv('SHIPPABLE_VORTEX_URL')
+        self['SHIPPABLE_VORTEX_RETRY_INTERVAL'] = int(os.getenv('SHIPPABLE_VORTEX_RETRY_INTERVAL', 3))
         self['SHIPPABLE_API_TOKEN'] = os.getenv('SHIPPABLE_API_TOKEN', '')
 
         self['DEFAULT_EXCHANGE'] = 'shippableEx'
@@ -29,7 +30,6 @@ class Config(dict):
 
         default_cmd_timeout = 60 * 30
         self['MAX_COMMAND_SECONDS'] = int(os.getenv('MAX_BUILD_SECONDS', default_cmd_timeout))
-        self['VORTEX_RETRY_INTERVAL'] = int(os.getenv('VORTEX_RETRY_INTERVAL', 3))
 
         self['MAX_USER_LOG_SIZE'] = 12 * 1024 * 1024
 
