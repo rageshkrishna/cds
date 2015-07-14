@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # This script launches the worker inside a container. It takes care of resetting·
 # file system permissions, activating the VE and launching the process
