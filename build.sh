@@ -20,6 +20,7 @@ cd $CDS_DIR
 SUDO=`which sudo`
 
 $SUDO mkdir -p /home/shippable/build/logs
+$SUDO mkdir -p /shippableci
 $SUDO chown -R $USER:$USER /home/shippable/build/logs
 $SUDO chown -R $USER:$USER /home/shippable/build
 
