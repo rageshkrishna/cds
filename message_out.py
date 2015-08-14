@@ -1,3 +1,4 @@
+import sys
 import json
 import time
 import logging
@@ -25,6 +26,15 @@ class MessageOut(object):
                 "console": message.get('console')
             }
         }
+
+        console_size_bytes = sys.getsizeof(
+            json.dumps(post_data['payload']['console']))
+
+        if console_size_bytes > self.config['MAX_USER_LOG_SIZE_BYTES']:
+            self.log.warn('Console size exceeding max limit: {0}'.format(
+                console_size_bytes))
+            return
+
         headers = {
             'Authorization': 'apiToken {0}'.format(
                 self.config['SHIPPABLE_API_TOKEN']),

@@ -31,7 +31,8 @@ class Config(dict):
         default_cmd_timeout = 60 * 30
         self['MAX_COMMAND_SECONDS'] = int(os.getenv('MAX_BUILD_SECONDS', default_cmd_timeout))
 
-        self['MAX_USER_LOG_SIZE'] = 12 * 1024 * 1024
+        max_user_log_size_mb = int(os.getenv('MAX_USER_LOG_SIZE_MB', 5))
+        self['MAX_USER_LOG_SIZE_BYTES'] = max_user_log_size_mb * 1024 * 1024
 
         buffer_length = os.getenv('CONSOLE_BUFFER_LENGTH', 10)
         self['CONSOLE_BUFFER_LENGTH'] = int(buffer_length)
