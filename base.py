@@ -140,9 +140,13 @@ class Base(object):
             current_cmd_info = None
             for line in iter(proc.stdout.readline, ''):
                 self.log.debug(line)
+                line_split = line.split('|')
                 if line.startswith('__SH__GROUP__START__'):
-                    current_group_info = line.split('|')[1]
-                    current_group_name = line.split('|')[2]
+                    current_group_info = line_split[1]
+                    # remove index 1 and 2
+                    del line_split[0]
+                    del line_split[0]
+                    current_group_name = '|'.join(line_split)
                     current_group_info = json.loads(current_group_info)
                     show_group = current_group_info.get('is_shown', True)
                     if show_group == 'false':
@@ -151,30 +155,36 @@ class Base(object):
                         'consoleId': current_group_info.get('id'),
                         'parentConsoleId': '',
                         'type': 'grp',
-                        'message' : current_group_name,
+                        'message': current_group_name,
                         'msgTimestamp': self.__get_timestamp(),
-                        'completed' : False,
+                        'completed': False,
                         'isShown': show_group
                     }
                     self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__CMD__START__'):
-                    current_cmd_info = line.split('|')[1]
-                    current_cmd_name = line.split('|')[2]
+                    current_cmd_info = line_split[1]
+                    # remove index 1 and 2
+                    del line_split[0]
+                    del line_split[0]
+                    current_cmd_name = '|'.join(line_split)
                     current_cmd_info = json.loads(current_cmd_info)
                     parent_id = current_group_info.get('id') if current_group_info else None
                     console_out = {
                         'consoleId': current_cmd_info.get('id'),
                         'parentConsoleId': parent_id,
                         'type': 'cmd',
-                        'message' : current_cmd_name,
+                        'message': current_cmd_name,
                         'msgTimestamp': self.__get_timestamp(),
-                        'completed' : False
+                        'completed': False
                     }
                     if parent_id:
                         self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__CMD__END__'):
-                    current_cmd_end_info = line.split('|')[1]
-                    current_cmd_end_name = line.split('|')[2]
+                    current_cmd_end_info = line_split[1]
+                    # remove index 1 and 2
+                    del line_split[0]
+                    del line_split[0]
+                    current_cmd_end_name = '|'.join(line_split)
                     current_cmd_end_info = json.loads(current_cmd_end_info)
                     parent_id = current_group_info.get('id') if current_group_info else None
                     is_completed = False
@@ -184,15 +194,18 @@ class Base(object):
                         'consoleId': current_cmd_info.get('id'),
                         'parentConsoleId': parent_id,
                         'type': 'cmd',
-                        'message' : current_cmd_end_name,
+                        'message': current_cmd_end_name,
                         'msgTimestamp': self.__get_timestamp(),
-                        'completed' : is_completed
+                        'completed': is_completed
                     }
                     if parent_id:
                         self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__GROUP__END__'):
-                    current_grp_end_info = line.split('|')[1]
-                    current_grp_end_name = line.split('|')[2]
+                    current_grp_end_info = line_split[1]
+                    # remove index 1 and 2
+                    del line_split[0]
+                    del line_split[0]
+                    current_grp_end_name = '|'.join(line_split)
                     current_grp_end_info = json.loads(current_grp_end_info)
                     is_completed = False
                     if current_grp_end_info.get('completed') == '0':
@@ -201,15 +214,15 @@ class Base(object):
                         'consoleId': current_group_info.get('id'),
                         'parentConsoleId': '',
                         'type': 'grp',
-                        'message' : current_grp_end_name,
+                        'message': current_grp_end_name,
                         'msgTimestamp': self.__get_timestamp(),
-                        'completed' : is_completed
+                        'completed': is_completed
                     }
                     self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__SCRIPT_END_SUCCESS__'):
                     success = True
                     break
-                elif '__SH__ARCHIVE_END__' in line:
+                elif '__SH__ARCHIVE_END__'in line:
                     success = True
                     break
                 elif line.startswith('__SH__SCRIPT_END_FAILURE__'):
@@ -218,9 +231,9 @@ class Base(object):
                             'consoleId': current_group_info.get('id'),
                             'parentConsoleId': '',
                             'type': 'grp',
-                            'message' : current_group_name,
+                            'message': current_group_name,
                             'msgTimestamp': self.__get_timestamp(),
-                            'completed' : False
+                            'completed': False
                         }
                         self.log.append_console_buffer(console_out)
                     success = False
@@ -232,9 +245,9 @@ class Base(object):
                         'consoleId': str(uuid.uuid4()),
                         'parentConsoleId': parent_id,
                         'type': 'msg',
-                        'message' : line,
+                        'message': line,
                         'msgTimestamp': self.__get_timestamp(),
-                        'completed' : False
+                        'completed': False
                     }
                     if parent_id:
                         self.log.append_console_buffer(console_out)
