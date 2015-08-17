@@ -143,10 +143,7 @@ class Base(object):
                 line_split = line.split('|')
                 if line.startswith('__SH__GROUP__START__'):
                     current_group_info = line_split[1]
-                    # remove index 1 and 2
-                    del line_split[0]
-                    del line_split[0]
-                    current_group_name = '|'.join(line_split)
+                    current_group_name = '|'.join(line_split[2:])
                     current_group_info = json.loads(current_group_info)
                     show_group = current_group_info.get('is_shown', True)
                     if show_group == 'false':
@@ -163,10 +160,7 @@ class Base(object):
                     self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__CMD__START__'):
                     current_cmd_info = line_split[1]
-                    # remove index 1 and 2
-                    del line_split[0]
-                    del line_split[0]
-                    current_cmd_name = '|'.join(line_split)
+                    current_cmd_name = '|'.join(line_split[2:])
                     current_cmd_info = json.loads(current_cmd_info)
                     parent_id = current_group_info.get('id') if current_group_info else None
                     console_out = {
@@ -181,10 +175,7 @@ class Base(object):
                         self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__CMD__END__'):
                     current_cmd_end_info = line_split[1]
-                    # remove index 1 and 2
-                    del line_split[0]
-                    del line_split[0]
-                    current_cmd_end_name = '|'.join(line_split)
+                    current_cmd_end_name = '|'.join(line_split[2:])
                     current_cmd_end_info = json.loads(current_cmd_end_info)
                     parent_id = current_group_info.get('id') if current_group_info else None
                     is_completed = False
@@ -202,10 +193,7 @@ class Base(object):
                         self.log.append_console_buffer(console_out)
                 elif line.startswith('__SH__GROUP__END__'):
                     current_grp_end_info = line_split[1]
-                    # remove index 1 and 2
-                    del line_split[0]
-                    del line_split[0]
-                    current_grp_end_name = '|'.join(line_split)
+                    current_grp_end_name = '|'.join(line_split[2:])
                     current_grp_end_info = json.loads(current_grp_end_info)
                     is_completed = False
                     if current_grp_end_info.get('completed') == '0':
@@ -222,7 +210,7 @@ class Base(object):
                 elif line.startswith('__SH__SCRIPT_END_SUCCESS__'):
                     success = True
                     break
-                elif '__SH__ARCHIVE_END__'in line:
+                elif '__SH__ARCHIVE_END__' in line:
                     success = True
                     break
                 elif line.startswith('__SH__SCRIPT_END_FAILURE__'):
