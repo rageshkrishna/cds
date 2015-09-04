@@ -12,6 +12,7 @@ class Execute(Base):
         self.step_name = self.config['STEP_NAME'].lower()
         self.step = self.get_top_of_stack(self.message)
         self.__validate_step_content(self.step)
+        self.total_report_filesize_bytes = 0
 
         self.user_publisher = MessagePublisher(
             self.module,
@@ -170,6 +171,11 @@ class Execute(Base):
             self.log.debug(test_report_filenames)
 
             for test_report_filename in test_report_filenames:
+                current_filesize_bytes = os.path.getsize(test_report_filename)
+                if (self.total_report_filesize_bytes + current_filesize_bytes >= self.config['MAX_USER_REPORT_SIZE_BYTES']):
+                    continue
+
+                self.total_report_filesize_bytes += current_filesize_bytes
                 with open(test_report_filename) as test_file:
                     test_reports.append({
                         'content': test_file.read(),
@@ -215,6 +221,11 @@ class Execute(Base):
             self.log.debug(coverage_report_filenames)
 
             for coverage_report_filename in coverage_report_filenames:
+                current_filesize_bytes = os.path.getsize(coverage_report_filename)
+                if (self.total_report_filesize_bytes + current_filesize_bytes >= self.config['MAX_USER_REPORT_SIZE_BYTES']):
+                    continue
+
+                self.total_report_filesize_bytes += current_filesize_bytes
                 with open(coverage_report_filename) as report_file:
                     coverage_reports.append({
                         'content': report_file.read(),

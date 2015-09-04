@@ -34,6 +34,9 @@ class Config(dict):
         max_user_log_size_mb = int(os.getenv('MAX_USER_LOG_SIZE_MB', 5))
         self['MAX_USER_LOG_SIZE_BYTES'] = max_user_log_size_mb * 1024 * 1024
 
+        max_user_report_size_mb = int(os.getenv('MAX_USER_REPORT_SIZE_MB', 5))
+        self['MAX_USER_REPORT_SIZE_BYTES'] = max_user_report_size_mb * 1024 * 1024
+
         buffer_length = os.getenv('CONSOLE_BUFFER_LENGTH', 10)
         self['CONSOLE_BUFFER_LENGTH'] = int(buffer_length)
 
