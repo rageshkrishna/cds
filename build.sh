@@ -69,7 +69,7 @@ else
 fi
 
 mkdir -p $HOME/.ssh
-RUN mkdir -p /shipppableci
+mkdir -p /shipppableci
 touch $HOME/.ssh/config
 
 # Turn off strict host key checking
