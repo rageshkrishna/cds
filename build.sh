@@ -23,7 +23,6 @@ $SUDO mkdir -p /home/shippable/build/logs
 $SUDO mkdir -p /shippableci
 $SUDO chown -R $USER:$USER /home/shippable/build/logs
 $SUDO chown -R $USER:$USER /home/shippable/build
-$SUDO touch /home/shippable/bootinfo.txt
 
 # Set up the virtual environment for the worker
 PIP=`which pip`
