@@ -29,7 +29,6 @@ class Listen(Base):
             for handler in handlers:
                 handler.close()
                 self.log.remove_handler(handler)
-            print 'STOP_TAILING'
             sys.stdout.flush()
             
     def handle_message_callback(self, message, is_redelivered=True):
@@ -55,6 +54,9 @@ class Listen(Base):
                 # this is read by HDQ to decide whether DS container
                 # boot was successful or not
                 print self.config['BOOT_SUCCESS_MESSAGE']
+                boot_file = open('/home/shippable/bootinfo.txt', 'a')
+                boot_file.write('success')
+                boot_file.close()
                 sys.stdout.flush()
 
             self.execute.run()
