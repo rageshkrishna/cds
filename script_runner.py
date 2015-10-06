@@ -40,7 +40,7 @@ class ScriptRunner(Base):
         self.log.debug('Script file created')
 
         script_file = open(self.script_name, 'w')
-        script_file.write(script)
+        script_file.write(script.encode('UTF-8'))
         script_file.close()
 
         self.log.debug('Executing file')
